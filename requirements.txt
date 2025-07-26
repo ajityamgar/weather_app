@@ -1,0 +1,9 @@
+customtkinter
+requests
+pillow
+speechrecognition
+matplotlib
+pytz
+translate
+pyaudio
+plotly 
