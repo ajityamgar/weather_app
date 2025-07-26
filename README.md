@@ -28,7 +28,7 @@ This is an advanced and interactive **Weather App** built using Python, offering
 ## 🔧 Installation
 
 ```bash
-git clone https://github.com/ajit-yamgar/weather_app.git
+git clone https://github.com/ajityamgar/weather_app.git
 cd weather_app
 pip install -r requirements.txt
 python app.py
