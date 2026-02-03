@@ -1,9 +1,8 @@
 customtkinter
 requests
-pillow
 speechrecognition
-matplotlib
-pytz
-translate
 pyaudio
-plotly 
+matplotlib
+pillow
+translate
+pytz

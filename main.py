@@ -2,254 +2,256 @@ import customtkinter as ctk
 import requests
 import threading
 import datetime
-import random
+import pytz
+import json
+import os
+import speech_recognition as sr
+from translate import Translator
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.figure import Figure
 
-API_KEY = "YOUR_API_KEY_HERE"
-BASE_URL = "https://api.openweathermap.org/data/2.5/weather"
+# ================= CONFIG =================
+
+API_KEY = "YOUR_OPENWEATHERMAP_API_KEY"
+CURRENT_URL = "https://api.openweathermap.org/data/2.5/weather"
+FORECAST_URL = "https://api.openweathermap.org/data/2.5/forecast"
+HISTORY_FILE = "weather_history.json"
 
 ctk.set_appearance_mode("Dark")
-ctk.set_default_color_theme("dark-blue")
+ctk.set_default_color_theme("blue")
 
+LANGUAGES = {
+    "English": "en",
+    "Hindi": "hi",
+    "Marathi": "mr"
+}
+
+UI_TEXT = {
+    "English": {"search": "Search city...", "forecast": "5-Day Forecast"},
+    "Hindi": {"search": "शहर खोजें...", "forecast": "5 दिन का पूर्वानुमान"},
+    "Marathi": {"search": "शहर शोधा...", "forecast": "5 दिवसांचा अंदाज"}
+}
+
+# ================= Utility =================
+
+def load_history():
+    if not os.path.exists(HISTORY_FILE):
+        return []
+    with open(HISTORY_FILE, "r") as f:
+        return json.load(f)
+
+def save_history(city):
+    data = load_history()
+    if city in data:
+        data.remove(city)
+    data.insert(0, city)
+    data = data[:8]
+    with open(HISTORY_FILE, "w") as f:
+        json.dump(data, f)
+
+# ================= App =================
 
 class WeatherApp(ctk.CTk):
 
     def __init__(self):
         super().__init__()
-
-        self.title("Weather App")
-        self.geometry("1200x750")
+        self.title("Weather Pro")
+        self.geometry("1200x760")
         self.minsize(1000, 650)
 
         self.unit = "metric"
-        self.history = []
+        self.language = "English"
 
-        self.configure(fg_color="#0f172a")
+        self.bg_frame = ctk.CTkFrame(self, fg_color="#0f172a")
+        self.bg_frame.place(relwidth=1, relheight=1)
 
-        self.create_gradient_background()
-        self.create_layout()
+        self.container = ctk.CTkFrame(self, corner_radius=25, fg_color="#111827")
+        self.container.pack(padx=50, pady=50, fill="both", expand=True)
 
-    # ================= Animated Gradient =================
+        self.create_top_bar()
+        self.create_main_card()
+        self.create_forecast_section()
+        self.update_history_ui()
 
-    def create_gradient_background(self):
-        self.gradient = ctk.CTkFrame(self, fg_color="#1e293b")
-        self.gradient.place(relwidth=1, relheight=1)
+        self.animate_background()
 
-    def change_theme_color(self, color):
-        self.gradient.configure(fg_color=color)
+    # ================= Background Animation =================
 
-    # ================= Layout =================
+    def animate_background(self):
+        current = self.bg_frame.cget("fg_color")
+        if isinstance(current, tuple):
+            current = current[0]
+        r = int(current[1:3], 16)
+        g = int(current[3:5], 16)
+        b = int(current[5:7], 16)
+        r = (r + 1) % 255
+        color = f"#{r:02x}{g:02x}{b:02x}"
+        self.bg_frame.configure(fg_color=color)
+        self.after(100, self.animate_background)
 
-    def create_layout(self):
+    # ================= UI =================
 
-        # Sidebar
-        self.sidebar = ctk.CTkFrame(self, width=240, corner_radius=0,
-                                    fg_color="#111827")
-        self.sidebar.pack(side="left", fill="y")
-
-        title = ctk.CTkLabel(self.sidebar, text="Weather",
-                             font=ctk.CTkFont(size=26, weight="bold"))
-        title.pack(pady=(40, 20))
-
-        self.history_frame = ctk.CTkScrollableFrame(
-            self.sidebar, width=200, fg_color="#0f172a")
-        self.history_frame.pack(padx=10, pady=10, fill="both", expand=True)
-
-        # Main Container
-        self.container = ctk.CTkFrame(self, fg_color="transparent")
-        self.container.pack(expand=True, fill="both", padx=40, pady=40)
-
-        # Search Bar
-        top_frame = ctk.CTkFrame(self.container, fg_color="transparent")
-        top_frame.pack(pady=10)
+    def create_top_bar(self):
+        top = ctk.CTkFrame(self.container, fg_color="transparent")
+        top.pack(pady=15)
 
         self.city_entry = ctk.CTkEntry(
-            top_frame,
-            width=350,
-            height=45,
-            corner_radius=20,
-            placeholder_text="Search city..."
+            top, width=300, height=40,
+            placeholder_text=UI_TEXT[self.language]["search"]
         )
         self.city_entry.pack(side="left", padx=10)
 
-        self.search_btn = ctk.CTkButton(
-            top_frame,
-            text="Search",
-            height=45,
-            corner_radius=20,
-            command=self.get_weather
-        )
-        self.search_btn.pack(side="left", padx=10)
+        ctk.CTkButton(top, text="Search", command=self.get_weather).pack(side="left", padx=5)
+        ctk.CTkButton(top, text="🎤", width=40, command=self.voice_input).pack(side="left", padx=5)
 
-        self.unit_toggle = ctk.CTkSwitch(
-            top_frame,
-            text="°C / °F",
-            command=self.toggle_unit
+        self.lang_menu = ctk.CTkOptionMenu(
+            top, values=list(LANGUAGES.keys()),
+            command=self.change_language
         )
-        self.unit_toggle.pack(side="left", padx=15)
+        self.lang_menu.pack(side="left", padx=10)
 
-        # Glass Card
-        self.card = ctk.CTkFrame(
-            self.container,
-            corner_radius=30,
-            fg_color="#1e293b"
-        )
-        self.card.pack(pady=40, ipadx=40, ipady=40)
+    def create_main_card(self):
+        self.card = ctk.CTkFrame(self.container, corner_radius=30, fg_color="#1e293b")
+        self.card.pack(pady=30, ipadx=40, ipady=40)
 
-        # Weather Info
-        self.emoji_label = ctk.CTkLabel(
-            self.card,
-            text="🌤️",
-            font=ctk.CTkFont(size=100)
-        )
-        self.emoji_label.pack(pady=(10, 0))
+        self.city_label = ctk.CTkLabel(self.card, text="", font=ctk.CTkFont(size=20, weight="bold"))
+        self.city_label.pack()
 
-        self.temp_label = ctk.CTkLabel(
-            self.card,
-            text="--°",
-            font=ctk.CTkFont(size=72, weight="bold")
-        )
+        self.temp_label = ctk.CTkLabel(self.card, text="--°", font=ctk.CTkFont(size=60, weight="bold"))
         self.temp_label.pack()
 
-        self.desc_label = ctk.CTkLabel(
-            self.card,
-            text="Weather info",
-            font=ctk.CTkFont(size=22)
-        )
+        self.desc_label = ctk.CTkLabel(self.card, text="")
         self.desc_label.pack(pady=5)
 
-        self.location_label = ctk.CTkLabel(
-            self.card,
-            text="",
-            font=ctk.CTkFont(size=16)
+        self.time_label = ctk.CTkLabel(self.card, text="")
+        self.time_label.pack(pady=5)
+
+        self.details_label = ctk.CTkLabel(self.card, text="")
+        self.details_label.pack(pady=10)
+
+    def create_forecast_section(self):
+        self.forecast_title = ctk.CTkLabel(
+            self.container,
+            text=UI_TEXT[self.language]["forecast"],
+            font=ctk.CTkFont(size=18, weight="bold")
         )
-        self.location_label.pack()
+        self.forecast_title.pack()
 
-        self.time_label = ctk.CTkLabel(
-            self.card,
-            text="",
-            font=ctk.CTkFont(size=14)
-        )
-        self.time_label.pack(pady=(5, 25))
+        self.chart_frame = ctk.CTkFrame(self.container)
+        self.chart_frame.pack(pady=20, fill="both", expand=True)
 
-        # Stats Section
-        self.stats_frame = ctk.CTkFrame(self.card, fg_color="transparent")
-        self.stats_frame.pack()
+    # ================= Language =================
 
-        self.humidity_label = self.create_stat("Humidity")
-        self.wind_label = self.create_stat("Wind")
-        self.pressure_label = self.create_stat("Pressure")
-        self.cloud_label = self.create_stat("Clouds")
+    def change_language(self, choice):
+        self.language = choice
+        self.city_entry.configure(placeholder_text=UI_TEXT[self.language]["search"])
+        self.forecast_title.configure(text=UI_TEXT[self.language]["forecast"])
 
-    def create_stat(self, title):
-        frame = ctk.CTkFrame(
-            self.stats_frame,
-            width=120,
-            height=90,
-            corner_radius=20,
-            fg_color="#0f172a"
-        )
-        frame.pack(side="left", padx=15)
+    # ================= Voice =================
 
-        ctk.CTkLabel(frame, text=title).pack(pady=(15, 5))
-        value = ctk.CTkLabel(frame, text="--",
-                             font=ctk.CTkFont(weight="bold"))
-        value.pack()
+    def voice_input(self):
+        recognizer = sr.Recognizer()
+        with sr.Microphone() as source:
+            try:
+                audio = recognizer.listen(source, timeout=5)
+                city = recognizer.recognize_google(audio)
+                self.city_entry.delete(0, "end")
+                self.city_entry.insert(0, city)
+                self.get_weather()
+            except:
+                pass
 
-        return value
-
-    # ================= API =================
-
-    def toggle_unit(self):
-        self.unit = "imperial" if self.unit == "metric" else "metric"
-        if self.city_entry.get():
-            self.get_weather()
+    # ================= Weather =================
 
     def get_weather(self):
         city = self.city_entry.get().strip()
         if not city:
             return
-
-        threading.Thread(
-            target=self.fetch_weather,
-            args=(city,),
-            daemon=True
-        ).start()
+        threading.Thread(target=self.fetch_weather, args=(city,), daemon=True).start()
 
     def fetch_weather(self, city):
-        params = {
-            "q": city,
-            "appid": API_KEY,
-            "units": self.unit
-        }
-
+        params = {"q": city, "appid": API_KEY, "units": self.unit}
         try:
-            response = requests.get(BASE_URL, params=params)
-            data = response.json()
+            current = requests.get(CURRENT_URL, params=params).json()
+            forecast = requests.get(FORECAST_URL, params=params).json()
+            if current.get("cod") != 200:
+                return
+            self.after(0, lambda: self.update_ui(current, forecast))
+            save_history(city)
+        except:
+            pass
 
-            if response.status_code != 200:
-                raise Exception(data.get("message"))
+    def update_ui(self, data, forecast):
 
-            self.after(0, lambda: self.update_ui(data))
-
-        except Exception as e:
-            print("Error:", e)
-
-    # ================= Update UI =================
-
-    def update_ui(self, data):
-
-        condition = data["weather"][0]["main"]
-        desc = data["weather"][0]["description"].title()
+        city = data["name"]
+        country = data["sys"]["country"]
         temp = data["main"]["temp"]
+        desc = data["weather"][0]["description"]
         humidity = data["main"]["humidity"]
         wind = data["wind"]["speed"]
         pressure = data["main"]["pressure"]
         clouds = data["clouds"]["all"]
 
-        city = data["name"]
-        country = data["sys"]["country"]
+        sunrise = datetime.datetime.fromtimestamp(data["sys"]["sunrise"])
+        sunset = datetime.datetime.fromtimestamp(data["sys"]["sunset"])
 
         timezone_offset = data.get("timezone", 0)
         utc_now = datetime.datetime.utcnow()
         local_time = utc_now + datetime.timedelta(seconds=timezone_offset)
         time_str = local_time.strftime("%A | %d %b | %H:%M")
 
-        emoji_map = {
-            "Clear": "☀️",
-            "Clouds": "☁️",
-            "Rain": "🌧️",
-            "Thunderstorm": "⛈️",
-            "Snow": "❄️",
-            "Drizzle": "🌦️",
-            "Mist": "🌫️"
-        }
+        if self.language != "English":
+            try:
+                translator = Translator(to_lang=LANGUAGES[self.language])
+                desc = translator.translate(desc)
+            except:
+                pass
 
-        color_map = {
-            "Clear": "#f59e0b",
-            "Clouds": "#64748b",
-            "Rain": "#2563eb",
-            "Snow": "#94a3b8",
-            "Thunderstorm": "#4c1d95"
-        }
-
-        emoji = emoji_map.get(condition, "🌤️")
-        accent = color_map.get(condition, "#1e293b")
-
-        unit_symbol = "°C" if self.unit == "metric" else "°F"
-
-        self.change_theme_color(accent)
-
-        self.emoji_label.configure(text=emoji)
-        self.temp_label.configure(text=f"{temp:.1f}{unit_symbol}")
+        self.city_label.configure(text=f"{city}, {country}")
+        self.temp_label.configure(text=f"{temp:.1f}°C")
         self.desc_label.configure(text=desc)
-        self.location_label.configure(text=f"{city}, {country}")
         self.time_label.configure(text=time_str)
 
-        self.humidity_label.configure(text=f"{humidity}%")
-        self.wind_label.configure(text=f"{wind}")
-        self.pressure_label.configure(text=f"{pressure}")
-        self.cloud_label.configure(text=f"{clouds}%")
+        self.details_label.configure(
+            text=f"Humidity: {humidity}% | Wind: {wind} m/s | "
+                 f"Pressure: {pressure} hPa | Clouds: {clouds}%\n"
+                 f"Sunrise: {sunrise.strftime('%H:%M')} | Sunset: {sunset.strftime('%H:%M')}"
+        )
 
+        self.draw_forecast_chart(forecast)
+
+    # ================= Forecast Chart =================
+
+    def draw_forecast_chart(self, forecast):
+        for widget in self.chart_frame.winfo_children():
+            widget.destroy()
+
+        temps = []
+        dates = []
+
+        for item in forecast["list"][::8][:5]:
+            temps.append(item["main"]["temp"])
+            dt = datetime.datetime.fromtimestamp(item["dt"])
+            dates.append(dt.strftime("%a"))
+
+        fig = Figure(figsize=(6, 3), dpi=100)
+        ax = fig.add_subplot(111)
+        ax.plot(dates, temps)
+        ax.set_title("Temperature Trend")
+        ax.set_ylabel("°C")
+
+        canvas = FigureCanvasTkAgg(fig, master=self.chart_frame)
+        canvas.draw()
+        canvas.get_tk_widget().pack(fill="both", expand=True)
+
+    # ================= History UI =================
+
+    def update_history_ui(self):
+        history = load_history()
+        for city in history:
+            pass  # Simplified (history saved & reusable)
+
+# ================= Run =================
 
 if __name__ == "__main__":
     app = WeatherApp()
