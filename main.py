@@ -16,7 +16,7 @@ from translate import Translator
 import datetime
 import pytz
 
-API_KEY = "f1ae5ffd216663cf47417adb358df1c7"
+API_KEY = "YOUR_API_KEY"
 BASE_URL = "https://api.openweathermap.org/data/2.5/weather"
 ICON_URL = "https://openweathermap.org/img/wn/{}@2x.png"
 
