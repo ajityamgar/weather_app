@@ -2,6 +2,9 @@
 
 This is an advanced and interactive **Weather App** built using Python, offering real-time weather updates with a beautiful graphical interface and smart features like **voice input**, **language translation**, and **animated UI based on weather conditions**.
 
+
+API KEY = f1ae5ffd216663cf47417adb358df1c7
+
 ## ✨ Features
 
 - 🔍 Real-time weather information using [OpenWeatherMap API](https://openweathermap.org/)
