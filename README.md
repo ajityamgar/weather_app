@@ -1,37 +1,143 @@
-# 🌦️ Weather App – Python GUI Based Interactive Weather Application
-
-This is an advanced and interactive **Weather App** built using Python, offering real-time weather updates with a beautiful graphical interface and smart features like **voice input**, **language translation**, and **animated UI based on weather conditions**.
-
 
 API KEY = f1ae5ffd216663cf47417adb358df1c7
 
-## ✨ Features
 
-- 🔍 Real-time weather information using [OpenWeatherMap API](https://openweathermap.org/)
-- 🗣️ Voice input for city selection (speech recognition)
-- 🖼️ Dynamic background animations based on current weather
-- 🌐 Multilingual translation support
-- 📊 5-day forecast with charts/graphs
-- 🎨 Modern GUI using `tkinter` or `customtkinter`
-- 🌎 Temperature, humidity, wind speed, pressure and more
-- ☁️ Cloud coverage and sunrise/sunset time
-- 📌 Option to select location from history
+🌦️ Weather Pro – Advanced Python GUI Weather Application
 
-## 🛠 Tech Stack
+A modern and interactive Weather Application built using Python + CustomTkinter, providing real-time weather updates with dynamic UI, multilingual support, voice input, animated background, and 5-day forecast visualization.
 
-- **Python 3.x**
-- `tkinter` or `customtkinter` (GUI)
-- `requests` (API calls)
-- `speech_recognition` (Voice input)
-- `pyttsx3` (Text to speech)
-- `Pillow` (For background images)
-- `googletrans` or `translate` (Language translation)
-- `matplotlib` (Weather graphs/forecast)
+🚀 Overview
 
-## 🔧 Installation
+Weather Pro is a feature-rich desktop application that fetches real-time weather data from the OpenWeatherMap API and presents it in a clean, modern GUI with smooth animations and chart-based forecast visualization.
 
-```bash
+This project demonstrates:
+
+API Integration
+
+Multithreading
+
+GUI Design with CustomTkinter
+
+Data Visualization using Matplotlib
+
+Speech Recognition Integration
+
+Language Translation Support
+
+Local Data Persistence (History)
+
+✨ Features
+
+🔍 Real-time weather information using OpenWeatherMap API
+
+🗣️ Voice input for city search (Speech Recognition)
+
+🌐 Multilingual support (English, Hindi, Marathi)
+
+🌈 Animated dynamic background
+
+📊 5-day forecast with interactive temperature graph
+
+🌡 Temperature display (°C)
+
+💧 Humidity
+
+💨 Wind speed
+
+🧭 Pressure
+
+☁ Cloud coverage
+
+🌅 Sunrise & Sunset time
+
+📝 Search history persistence (JSON-based storage)
+
+🎨 Modern GUI using customtkinter
+
+⚡ Threaded API calls (Non-blocking UI)
+
+🛠 Tech Stack
+
+Python 3.x
+
+customtkinter – Modern GUI framework
+
+requests – API calls
+
+speech_recognition – Voice input
+
+translate – Weather description translation
+
+matplotlib – Forecast chart visualization
+
+pytz – Timezone handling
+
+threading – Background API calls
+
+json – History storage
+
+📦 Installation
+1️⃣ Clone the Repository
 git clone https://github.com/ajityamgar/weather_app.git
 cd weather_app
+
+2️⃣ Install Dependencies
 pip install -r requirements.txt
+
+
+Or manually install:
+
+pip install customtkinter requests speechrecognition pyaudio matplotlib translate pytz
+
+3️⃣ Add Your OpenWeatherMap API Key
+
+Open main.py and replace:
+
+API_KEY = "YOUR_OPENWEATHERMAP_API_KEY"
+
+
+With your actual API key from:
+
+👉 https://openweathermap.org/api
+
+▶️ Run the Application
 python main.py
+
+📁 Project Structure
+weather_app/
+│
+├── main.py
+├── weather_history.json
+├── requirements.txt
+└── README.md
+
+🧠 How It Works
+
+User enters city (or uses voice input).
+
+App fetches current weather + forecast via OpenWeatherMap API.
+
+Background thread prevents UI freezing.
+
+Weather data updates:
+
+Temperature
+
+Stats
+
+Sunrise / Sunset
+
+5-day forecast chart
+
+Search history is stored locally in JSON.
+
+🔐 Security Note
+
+Do NOT publish your API key publicly.
+
+Always keep this line in main.py:
+
+API_KEY = "YOUR_OPENWEATHERMAP_API_KEY"
+
+
+And add real key locally only.
