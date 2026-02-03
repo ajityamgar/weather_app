@@ -1,7 +1,3 @@
-
-API KEY = f1ae5ffd216663cf47417adb358df1c7
-
-
 🌦️ Weather Pro – Advanced Python GUI Weather Application
 
 A modern and interactive Weather Application built using Python + CustomTkinter, providing real-time weather updates with dynamic UI, multilingual support, voice input, animated background, and 5-day forecast visualization.
@@ -141,3 +137,8 @@ API_KEY = "YOUR_OPENWEATHERMAP_API_KEY"
 
 
 And add real key locally only.
+
+
+
+
+API KEY = "f1ae5ffd216663cf47417adb358df1c7"
